@@ -16,6 +16,7 @@
 
 #include "driver/sdmmc_host.h"
 #include "driver/sdspi_host.h"
+#include "driver/gpio.h"
 #include "sdmmc_cmd.h"
 
 #include "system_configuration.h"
@@ -50,7 +51,8 @@ static const char *TAG = "SD_CARD";
 
 bool sd_init(){
     ESP_LOGI(TAG, "Init SD Card");
-
+    const char mount_point[] = MOUNT_POINT;
+#if 0
     sdmmc_host_t host = SDSPI_HOST_DEFAULT();
     sdspi_slot_config_t slot_config = SDSPI_SLOT_CONFIG_DEFAULT();
     slot_config.gpio_miso   =     VSPI_MISO;
@@ -60,6 +62,13 @@ bool sd_init(){
     slot_config.dma_channel =     SPI_DMA_CHAN;
     host.slot               =     VSPI_HOST;
     host.max_freq_khz       =     SDMMC_FREQ_DEFAULT;
+#else
+    sdmmc_host_t host = SDMMC_HOST_DEFAULT();    
+    host.flags = SDMMC_HOST_FLAG_1BIT;
+
+    sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+    slot_config.width = 1;
+#endif
 
     // Mount Fat filesystem(Only one file at the time)
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
@@ -67,9 +76,9 @@ bool sd_init(){
         .max_files = 1,
         .allocation_unit_size = 16 * 1024
     };
-
+   
     sdmmc_card_t* card;
-    esp_err_t ret = esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot_config, &mount_config, &card);
+    esp_err_t ret = esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &card);
 
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {

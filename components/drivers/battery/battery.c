@@ -27,7 +27,7 @@ bool battery_alert = false; // To avoid system block when the low battery raise 
  **********************/
 
 static esp_adc_cal_characteristics_t *adc_chars;
-static const adc_channel_t channel = ADC_CHANNEL_0;   
+static const adc_channel_t channel = ADC_CHANNEL_3;   
 static const adc_atten_t atten = ADC_ATTEN_11db; //1dB of attenuation to obtain the full voltage range of the GPIO (Up to 3.9V)
 static const adc_unit_t unit = ADC_UNIT_1;
 

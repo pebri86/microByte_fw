@@ -1,6 +1,8 @@
 /*********************
  *      INCLUDES
  *********************/
+#define USE_ILI9341 1
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
@@ -11,7 +13,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if USE_ILI9341
+#include "ILI9341_driver.h"
+#else
 #include "ST7789_driver.h"
+#endif
 #include "display_HAL.h"
 #include "system_configuration.h"
 
@@ -42,6 +48,19 @@ extern uint16_t myPalette[];
 /**********************
 *      VARIABLES
 **********************/
+#if USE_ILI9341
+ili9341_driver_t display = {
+		.pin_reset = HSPI_RST,
+		.pin_dc = HSPI_DC,
+		.pin_mosi = HSPI_MOSI,
+		.pin_sclk = HSPI_CLK,
+		.spi_host = HSPI_HOST,
+		.dma_chan = 1,
+		.display_width = 240,
+		.display_height = 240,
+		.buffer_size = 20 * 240, // 2 buffers with 20 lines
+	};
+#else
 st7789_driver_t display = {
 		.pin_reset = HSPI_RST,
 		.pin_dc = HSPI_DC,
@@ -53,6 +72,7 @@ st7789_driver_t display = {
 		.display_height = 240,
 		.buffer_size = 20 * 240, // 2 buffers with 20 lines
 	};
+#endif
 
 static const char *TAG = "Display_HAL";
 
@@ -70,11 +90,19 @@ static uint8_t getPixelNES(const uint8_t *bufs, uint16_t x, uint16_t y, uint16_t
 // Display HAL basic functions.
 
 bool display_HAL_init(void){
+#if USE_ILI9341
+    return ILI9341_init(&display);
+#else
     return ST7789_init(&display);
+#endif
 }
 
 void display_HAL_clear(){
+#if USE_ILI9341
+    ILI9341_fill_area(&display, BLACK, 0, 0, display.display_width, display.display_height);
+#else
     ST7789_fill_area(&display, WHITE, 0, 0, display.display_width, display.display_height);
+#endif
 }
 
 // Boot Screen Functions
@@ -91,11 +119,19 @@ void display_HAL_boot_frame(uint16_t * buffer){
     display.current_buffer = buffer;
 
     //Send to the driver layer and change the buffer
+#if USE_ILI9341
+    ILI9341_swap_buffers(&display);
+#else
     ST7789_swap_buffers(&display);
+#endif
 }
 
 void display_HAL_change_endian(){
+#if USE_ILI9341
+    ILI9341_set_endian(&display);
+#else
     ST7789_set_endian(&display);
+#endif
 }
 
 // LVGL library releated functions
@@ -104,7 +140,11 @@ void display_HAL_flush(lv_disp_drv_t * drv, const lv_area_t * area, lv_color_t *
     uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
 
     //Set the area to print on the screen
+#if USE_ILI9341
+    ILI9341_set_window(&display,area->x1,area->y1,area->x2 ,area->y2);
+#else
     ST7789_set_window(&display,area->x1,area->y1,area->x2 ,area->y2);
+#endif
 
     //Save the buffer data and the size of the data to send
     display.current_buffer = (void *)color_map;
@@ -112,7 +152,11 @@ void display_HAL_flush(lv_disp_drv_t * drv, const lv_area_t * area, lv_color_t *
 
     //Send it
     //ST7789_write_pixels(&display, display.current_buffer, display.buffer_size);
+#if USE_ILI9341
+    ILI9341_swap_buffers(&display);
+#else
     ST7789_swap_buffers(&display);
+#endif
 
     //Tell to LVGL that is ready to send another frame
     lv_disp_flush_ready(drv);
@@ -132,7 +176,11 @@ void display_HAL_gb_frame(const uint16_t *data){
             
             sending_line = calc_line;
             calc_line = (calc_line == 1) ? 0 : 1;
+            #if USE_ILI9341
+            ILI9341_write_lines(&display,y, 0, SCR_WIDTH, line[sending_line], 1);
+            #else       
             ST7789_write_lines(&display,y, 0, SCR_WIDTH, line[sending_line], 1);
+            #endif
         }
     }
     else{
@@ -158,8 +206,12 @@ void display_HAL_gb_frame(const uint16_t *data){
             
             sending_line = calc_line;
             calc_line = (calc_line == 1) ? 0 : 1;
-           // ST7789_swap_buffers(&display);
+            // ST7789_swap_buffers(&display);
+            #if USE_ILI9341
+            ILI9341_write_lines(&display,y, xpos, outputWidth, line[sending_line], LINE_COUNT);
+            #else  
             ST7789_write_lines(&display,y, xpos, outputWidth, line[sending_line], LINE_COUNT);
+            #endif
         }  
     }
 }
@@ -177,7 +229,11 @@ void display_HAL_NES_frame(const uint8_t *data){
             
             sending_line = calc_line;
             calc_line = (calc_line == 1) ? 0 : 1;
+            #if USE_ILI9341
+            ILI9341_write_lines(&display,y, 0, SCR_WIDTH, line[sending_line], 1);
+            #else 
             ST7789_write_lines(&display,y, 0, SCR_WIDTH, line[sending_line], 1);
+            #endif
         }
     }
     else{
@@ -199,7 +255,11 @@ void display_HAL_NES_frame(const uint8_t *data){
 
             sending_line = calc_line;
             calc_line = (calc_line == 1) ? 0 : 1;
+            #if USE_ILI9341
+            ILI9341_write_lines(&display,y, xpos, outputWidth, line[sending_line], LINE_COUNT);
+            #else 
             ST7789_write_lines(&display,y, xpos, outputWidth, line[sending_line], LINE_COUNT);
+            #endif
         }
     }
 }
@@ -217,7 +277,11 @@ void display_HAL_SMS_frame(const uint8_t *data, uint16_t color[], bool GAMEGEAR)
             
             sending_line = calc_line;
             calc_line = (calc_line == 1) ? 0 : 1;
+            #if USE_ILI9341
+            ILI9341_write_lines(&display,y, 0, SCR_WIDTH, line[sending_line], 1);
+            #else 
             ST7789_write_lines(&display,y, 0, SCR_WIDTH, line[sending_line], 1);
+            #endif
         }
     }
     else{
@@ -241,7 +305,11 @@ void display_HAL_SMS_frame(const uint8_t *data, uint16_t color[], bool GAMEGEAR)
             }
             sending_line = calc_line;
             calc_line = (calc_line == 1) ? 0 : 1;
+            #if USE_ILI9341
+            ILI9341_write_lines(&display,y, xpos, outputWidth, line[sending_line], LINE_COUNT);
+            #else 
             ST7789_write_lines(&display,y, xpos, outputWidth, line[sending_line], LINE_COUNT);
+            #endif
         }
     }
 

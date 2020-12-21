@@ -1291,6 +1291,7 @@ static bool user_input_task(lv_indev_drv_t * indev_drv, lv_indev_data_t * data){
     // Get the status of the multiplexer driver
     uint16_t inputs_value =  input_read();
 
+#if 0
     if(!((inputs_value >> 0) & 0x01)){
         // Button Down pushed
         uint32_t actual_time= xTaskGetTickCount()/portTICK_PERIOD_MS;
@@ -1397,6 +1398,114 @@ static bool user_input_task(lv_indev_drv_t * indev_drv, lv_indev_data_t * data){
             btn_a_time = actual_time;
         }
     }
+#else
+if(!((inputs_value >> 3) & 0x01)){
+        // Button Down pushed
+        uint32_t actual_time= xTaskGetTickCount()/portTICK_PERIOD_MS;
+
+        // To avoid bounce with the buttons, we need to wait 2 ms.
+        if((actual_time-btn_down_time)>2){
+            data->state = LV_INDEV_STATE_PR;
+            data->key = LV_KEY_DOWN;
+
+            // Save the actual time to calculate the bounce time.
+            btn_down_time = actual_time;
+        }
+    }
+
+    if(!((inputs_value >> 4) & 0x01)){
+        // Button Left pushed
+        uint32_t actual_time= xTaskGetTickCount()/portTICK_PERIOD_MS;
+        if(sub_menu){
+            data->state = LV_INDEV_STATE_PR;
+            data->key = LV_KEY_LEFT;
+            btn_right_time = actual_time;
+        }
+        else{
+            if((actual_time-btn_right_time)>2){
+                if(tab_num > 0 ){
+                    tab_num--;
+                    data->state = LV_INDEV_STATE_PR;
+                    data->key = LV_KEY_PREV;
+                    lv_tabview_set_tab_act(tab_main_menu, tab_num, LV_ANIM_ON);
+                }
+                btn_right_time = actual_time;
+            }
+        } 
+    }
+
+    if(!((inputs_value >> 2) & 0x01)){
+        // Button up pushed
+        uint32_t actual_time= xTaskGetTickCount()/portTICK_PERIOD_MS;
+        if((actual_time-btn_up_time)>2){
+            data->state = LV_INDEV_STATE_PR;
+            data->key = LV_KEY_UP;
+            btn_up_time = actual_time;
+        }
+         
+    }
+
+    if(!((inputs_value >> 5) & 0x01)){
+        // Button right pushed
+        uint32_t actual_time= xTaskGetTickCount()/portTICK_PERIOD_MS;
+
+        if(sub_menu){
+            data->state = LV_INDEV_STATE_PR;
+            data->key = LV_KEY_RIGHT;
+            btn_right_time = actual_time;
+        }
+        else{
+            if((actual_time-btn_right_time)>2){
+                if(tab_num < 2){
+                    tab_num++;
+                    data->state = LV_INDEV_STATE_PR;
+                    data->key = LV_KEY_NEXT;
+                    lv_tabview_set_tab_act(tab_main_menu, tab_num, LV_ANIM_ON);
+                }
+                btn_right_time = actual_time;
+            }
+        } 
+    }
+
+    if(!((inputs_value >> 11) & 0x01)){
+        // Button menu pushed
+        uint32_t actual_time= xTaskGetTickCount()/portTICK_PERIOD_MS;
+
+        if((actual_time-btn_menu_time)>5){
+            struct SYSTEM_MODE emulator;
+            emulator.mode = MODE_GAME;
+            emulator.status = 0;
+
+            if( xQueueSend( modeQueue,&emulator, ( TickType_t ) 10) != pdPASS ){
+                ESP_LOGE(TAG,"Button menu queue send error");
+            }
+
+            btn_menu_time = actual_time;
+        }
+    }
+
+    if(!((inputs_value >> 7) & 0x01)){
+        // Button B pushed
+        uint32_t actual_time= xTaskGetTickCount()/portTICK_PERIOD_MS;
+
+        if((actual_time-btn_b_time)>2){
+            data->state = LV_INDEV_STATE_PR;
+            data->key = LV_KEY_ESC;
+            btn_b_time = actual_time;
+        }
+    }
+
+    if(!((inputs_value >> 6) & 0x01)){
+        // Button A pushed
+        uint32_t actual_time= xTaskGetTickCount()/portTICK_PERIOD_MS;
+
+        if((actual_time-btn_a_time)>2){
+            data->state = LV_INDEV_STATE_PR;
+            data->key = LV_KEY_ENTER;
+            btn_a_time = actual_time;
+        }
+    }
+#endif
 
     return false;
 }
