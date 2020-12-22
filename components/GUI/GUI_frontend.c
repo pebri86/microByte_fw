@@ -1467,7 +1467,7 @@ if(!((inputs_value >> 3) & 0x01)){
         } 
     }
 
-    if(!((inputs_value >> 11) & 0x01)){
+    if(!((inputs_value >> 10) & 0x01)){
         // Button menu pushed
         uint32_t actual_time= xTaskGetTickCount()/portTICK_PERIOD_MS;
 

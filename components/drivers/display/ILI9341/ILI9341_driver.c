@@ -76,11 +76,10 @@ bool ILI9341_init(ili9341_driver_t *driver){
 	driver->command.driver = driver;
 	driver->command.data = false;
 
-    // Set the RESET and DC PIN
-    gpio_pad_select_gpio(HSPI_RST);
+    // DC PIN
+    
+    //PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[HSPI_DC], PIN_FUNC_GPIO);
     gpio_pad_select_gpio(HSPI_DC);
-    gpio_set_direction(HSPI_RST, GPIO_MODE_OUTPUT);
-    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[HSPI_DC], PIN_FUNC_GPIO);
     gpio_set_direction(HSPI_DC, GPIO_MODE_OUTPUT);
 
     ESP_LOGI(TAG,"Set RST pin: %i \n Set DC pin: %i",HSPI_RST,HSPI_DC);
@@ -129,10 +128,6 @@ bool ILI9341_init(ili9341_driver_t *driver){
 
 
 void ILI9341_reset(ili9341_driver_t *driver) {
-	// gpio_set_level(HSPI_RST, 0);
-	// vTaskDelay(20 / portTICK_PERIOD_MS);
-	// gpio_set_level(HSPI_RST, 1);
-	// vTaskDelay(130 / portTICK_PERIOD_MS);
 	const ili9341_command_t sequence[] = {
 		{ILI9341_SWRESET, 120, 0, NULL},
 		{ILI9341_CMDLIST_END, 0, 0, NULL},
@@ -204,7 +199,7 @@ void ILI9341_write_lines(ili9341_driver_t *driver, int ypos, int xpos, int width
 
     //ILI9341_write_pixels(driver, driver->buffer_primary, size);
     driver->buffer_size = 240*20; 
-    ILI9341_set_window(driver,0,ypos,240,ypos +20);
+    ILI9341_set_window(driver, xpos , ypos, width - 1, ypos + lineCount);
    	// ILI9341_write_pixels(driver, driver->current_buffer, driver->buffer_size);
    	ILI9341_swap_buffers(driver);
 }
@@ -254,24 +249,24 @@ static void ILI9341_config(ili9341_driver_t *driver){
 	const ili9341_command_t init_sequence[] = {
 		{ILI9341_SWRESET, 120, 0, NULL},
         {0xEF, 0, 3, (const uint8_t *) "\x03\x80\x02"},      
-		{0xCF, 0, 3, (const uint8_t *) "\x00\xc1\x30"},
+		{0xCF, 0, 3, (const uint8_t *) "\x00\x83\x30"},
 		{0xED, 0, 4, (const uint8_t *) "\x64\x03\x12\x81"},
-		{0xE8, 0, 3, (const uint8_t *) "\x85\x00\x78"},
+		{0xE8, 0, 3, (const uint8_t *) "\x85\x01\x79"},
 		{0xCB, 0, 5, (const uint8_t *) "\x39\x2c\x00\x34\x02"},
 		{0xF7, 0, 1, (const uint8_t *) "\x20"},
 		{0xEA, 0, 2, (const uint8_t *) "\x00\x00"},
-		{ILI9341_PWCTR1, 0, 1, (const uint8_t *) "\x23"},											  /*Power control*/
-		{ILI9341_PWCTR2, 0, 1, (const uint8_t *) "\x10"},											  /*Power control */
-		{ILI9341_VMCTR1, 0, 2, (const uint8_t *) "\x3e\x28"},									  /*VCOM control*/
-		{ILI9341_VMCTR2, 0, 1, (const uint8_t *) "\x86"},											  /*VCOM control*/
+		{ILI9341_PWCTR1, 0, 1, (const uint8_t *) "\x26"},											  /*Power control*/
+		{ILI9341_PWCTR2, 0, 1, (const uint8_t *) "\x11"},											  /*Power control */
+		{ILI9341_VMCTR1, 0, 2, (const uint8_t *) "\x35\x3e"},									  /*VCOM control*/
+		{ILI9341_VMCTR2, 0, 1, (const uint8_t *) "\xbe"},											  /*VCOM control*/
 		{ILI9341_MADCTL, 0, 1, (const uint8_t *) "\x28"}, /*Memory Access Control*/
 		{ILI9341_PIXFMT, 0, 1, (const uint8_t *) "\x55"},											  /*Pixel Format Set*/
-		{ILI9341_FRMCTR1, 0, 2, (const uint8_t *) "\x00\x13"},
+		{ILI9341_FRMCTR1, 0, 2, (const uint8_t *) "\x00\x1b"},
 		{ILI9341_DFUNCTR, 0, 3, (const uint8_t *) "\x08\x82\x27"},
-		{0xF2, 0, 1, (const uint8_t *) "\x00"},
+		{0xF2, 0, 1, (const uint8_t *) "\x08"},
 		{ILI9341_GAMMASET, 0, 1, (const uint8_t *) "\x01"},
-		{ILI9341_GMCTRP1, 0, 15, (const uint8_t *) "\x0f\x31\x2b\x0c\x0e\x08\x4e\xf1\x37\x07\x10\x03\x0e\x09\x00"},
-		{ILI9341_GMCTRN1, 0, 15, (const uint8_t *) "\x00\x0e\x14\x03\x11\x07\x31\xc1\x48\x08\x0f\x0c\x31\x36\x0f"},
+		{ILI9341_GMCTRP1, 0, 15, (const uint8_t *) "\x1f\x1a\x18\x0a\x0f\x06\x45\x87\x32\x0a\x07\x02\x07\x05\x00"},
+		{ILI9341_GMCTRN1, 0, 15, (const uint8_t *) "\x00\x25\x27\x05\x10\x09\x3a\x78\x4d\x05\x18\x0d\x38\x3a\x1f"},
 		{0x2A, 0, 4, (const uint8_t *) "\x00\x00\x00\xEF"},
 		{0x2B, 0, 4, (const uint8_t *) "\x00\x00\x01\x3f"},
 		{0x2C, 0, 0, NULL},

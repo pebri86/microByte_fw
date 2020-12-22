@@ -59,19 +59,16 @@ static void timer_isr(void){
 
 void app_main(void){
     system_info();
-
+    sd_init();
     ESP_LOGI(TAG, "Memory Status:\r\n -SPI_RAM: %i Bytes\r\n -INTERNAL_RAM: %i Bytes\r\n -DMA_RAM: %i Bytes\r\n", \
     system_memory(MEMORY_SPIRAM),system_memory(MEMORY_INTERNAL),system_memory(MEMORY_DMA));
     display_HAL_init();
     xTaskCreatePinnedToCore(boot_screen_task, "intro_task", 2048, NULL, 1, &intro_handler, 1);
     /**************** Peripherals initialization **************/
-    
     audio_init(AUDIO_SAMPLE_16KHZ);
-   // display_init();
-    sd_init();
+    // display_init();
     input_init();
     battery_init();
-
     // After peripheral initialization we check if a new update was installed 
     // and if any hardware issue happend
     update_check();

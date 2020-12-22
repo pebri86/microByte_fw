@@ -65,6 +65,7 @@ bool sd_init(){
 #else
     sdmmc_host_t host = SDMMC_HOST_DEFAULT();    
     host.flags = SDMMC_HOST_FLAG_1BIT;
+    host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
 
     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
     slot_config.width = 1;

@@ -60,7 +60,7 @@ uint16_t input_read(void){
 #if USE_PCF8574
     //Get the mux values
     uint16_t inputs_value = PCF8574_readInputs();
-    printf("Input Values: %04x\r\n", inputs_value);
+    //printf("Input Values: %04x\r\n", inputs_value);
 
     //Check if the menu button it was pushed
     if(!((inputs_value >> 10) & 0x01)){ //Temporary workaround !((inputs_value >>11) & 0x01) is the real button

@@ -412,8 +412,14 @@ void osd_getinput(void)
 	uint16_t b = input_read();
 
 	const int ev[16] = {
+        #if 0
 		event_joypad1_down, event_joypad1_left, event_joypad1_up, event_joypad1_right, 0, 0, 0, 0,
-		event_joypad1_b, event_joypad1_a, event_joypad1_start, 0, event_joypad1_select, 0, 0, 0};
+		event_joypad1_b, event_joypad1_a, event_joypad1_start, 0, event_joypad1_select, 0, 0, 0
+        #else
+        event_joypad1_start, event_joypad1_select, event_joypad1_up, event_joypad1_down, event_joypad1_left, event_joypad1_right, event_joypad1_a, event_joypad1_b,
+		0, 0, 0, 0, 0, 0, 0, 0
+        #endif
+        };
 	static int oldb = 0xffff;
 	int chg = b ^ oldb;
 	int x;
